@@ -1,0 +1,343 @@
+---
+title: "TP2"
+author: "Abdallah DAABOUL"
+date: "24 mai 2019"
+output: html_document
+---
+#Exercice 1
+##Q1
+
+Irréductible et apériodique : Ro=0.3  
+Irréductible non apériodique: Ro=0 --> période=2  
+Non irréductible            : Ro=0.5  
+
+Dans les cas où Q est irréductible nous avons une unique loi stationnaire et donc nous pouvons appliqur le théorème ergodiue (Ro= 0.3 , 0)  
+Pour avoir une convergence en loi, une condition nécéssaire est que la chaine soit apériodique ce qui est le cas pour Ro=0.
+
+##Q2 Fonctions EtatSuivant
+```{r}
+#Fonction renvoyant l'etat suivant de la chaine
+EtatSuiv=function(i,Q){
+  lg=length(Q)
+  p=Q[i,]
+  p1 = c(0, p[1:lg-1])
+  t = runif(1)
+  u = (t > cumsum(p1)) & (t < cumsum(p))
+  X = which(u==1)
+  return (X)  
+}
+```
+
+##Q3 Tracer les trajectoires pour différents Ro
+
+```{r}
+#Creation de la matrice Q
+Q=function(RO){
+  return(rbind(c(RO, 0.5, 0,0.5-RO), c(1/2+RO, 0, 1/2-RO,0),c(0, 1/2-RO ,RO, 1/2),c(0.5-RO,0,0.5+RO,0))) #Creation de la matrice
+}
+```
+
+```{r}
+#Trajectoire de la chaine
+n=20
+Etat=rep(NA,20)
+Etat[1]=1
+
+par(mfrow=c(1,3))
+for(Z in c(0,0.25,0.5)){
+for(t in 2:n){     #n=20
+  Etat[t]=EtatSuiv(Etat[t-1],Q(Z))   #Je stocke l état de chaque itération
+}
+Iteration=1:20
+plot(Iteration,Etat,type="s",main = paste("Trajectoire de Xn pour RO=",Z))
+
+}
+```
+
+##Q4 Détermination des valeurs invariantes
+
+On remarque que nous pouvons remplacer le système pi*p=pi par p'pi'=pi'   
+Alors le vecteur pi sera le vecteur correspondant à la valeur propre 1 .  
+On divise pi par la somme de ses composantes pour avoir une somme de pi = 1 
+
+```{r}
+#Fonction Renvoyant la loi invariante correspondante
+LoiInv=function(M){
+tM=t(M) #Transposé de M
+Propres=eigen(tM)
+pi=Propres$vectors[,1] / sum(Propres$vectors[,1])
+return(pi)
+}
+```
+
+
+```{r}
+pi0=LoiInv(Q(0))
+print(pi0)
+pi025=LoiInv(Q(0.25))
+print(pi025)
+pi050=LoiInv(Q(0.5))
+print(pi050)
+```
+
+```{r}
+#Affichage des valeurs propres de Q(0.5)
+print(eigen(Q(0.5)))
+```
+
+Pour le cas de Ro=0.5, en affichant les valeurs propres, nous remarquons que 1 est une valeur propre double. Ce qui correspond aux 2 classes de récurrence de cette matrice. Donc la loi stationnaire est une combinaison linéaire des deux classes et donc nous avons une infinité de possibilité.
+
+##Q5 Les cas où le théorème ergodique est applicable
+
+Pour Ro=0 et 0.25 les 2 chaines sont irréductibles et donc le théorème ergodique est applicable dans ces 2 cas.
+
+```{r}
+#fonction qui simule n etat
+simul <- function(n,M,P0){
+  X = rep(0,times=n)
+  l = length(M)
+  p1 = c(0,P0[1:l-1])
+  t = runif(1)
+  u = (t > cumsum(p1)) & (t < cumsum(P0))
+  X[1] = which(u==1)
+  
+  for(i in 2:n){
+    X[i]=EtatSuiv(X[i-1],M)
+  }
+  return (X)
+}
+
+P0 = c(1,0,0,0)
+
+T=seq(1,1000)
+
+#Pour Ro=0
+
+X = simul(1000,Q(0),P0)
+f1 = cumsum(X==1)/T
+f2 = cumsum(X==2)/T
+f3 = cumsum(X==3)/T
+f4 = cumsum(X==4)/T
+
+par(mfrow=c(1,4))
+plot(f1,type='l',xlab=("iteration"),ylab=("Etat 1"))
+plot(f2,type='l',col='red',xlab=("iteration"),ylab=("Etat 2"))
+plot(f3,type='l',col='green',xlab=("iteration"),ylab=("Etat 3"))
+plot(f3,type='l',col='blue',xlab=("iteration"),ylab=("Etat 4"))
+```
+
+  
+```{r}
+#Pour Ro=0.25
+
+X = simul(1000,Q(0.25),P0)
+f1 = cumsum(X==1)/T
+f2 = cumsum(X==2)/T
+f3 = cumsum(X==3)/T
+f4 = cumsum(X==4)/T
+
+par(mfrow=c(1,4))
+plot(f1,type='l',xlab=("iteration"),ylab=("Etat 1"))
+plot(f2,type='l',col='red',xlab=("iteration"),ylab=("Etat 2"))
+plot(f3,type='l',col='green',xlab=("iteration"),ylab=("Etat 3"))
+plot(f3,type='l',col='blue',xlab=("iteration"),ylab=("Etat 4"))
+
+```
+
+Nous remarquons que dans les 2 cas, les courbes représentant chacun des états convergent bien à leur valeur correspondante dans la loi invariante.
+
+##Q6
+Pour Ro=0.025 loi chaine et irréductible et apériodique, donc on a la convergence en loi
+
+```{r}
+#Simulation de 1000 trajectoires de 20 itérations
+#Pour Ro=0.25
+Trajectoires=matrix(0,1000,20)
+for(cpt in 1:1000){
+  Trajectoires[cpt,] = simul(20,Q(0.25),P0)
+}
+par(mfrow=c(2,5))
+for(i in 2:20){
+  barplot(table(Trajectoires[,i])/1000,beside=TRUE,main = paste('Pour l iteration',i))
+}
+
+```
+  
+Nous remarquons que les bars convergent bien vers la loi stationnaire pour Q=0.25  -> (0.28 0.21 0.28 0.21) 
+  
+Pour montrer la non convergence pour Ro=0.5, je vais prendre deux états initials différents (0,0,0,1) et (1,0,0,0) 
+
+####Q(0.5) partant de 4
+```{r}
+Q0_partant_de_4=matrix(0,1000,20)
+for(cpt in 1:1000){
+  Q0_partant_de_4[cpt,] = simul(20,Q(0.5),c(0,0,0,1))
+}
+par(mfrow=c(2,5))
+for(i in 2:20){
+  barplot(table(Q0_partant_de_4[,i])/1000,beside=TRUE,main = paste('Pour l iteration',i))
+}
+```
+
+####Q(0.5) partant de 1
+```{r}
+Q0_partant_de_1=matrix(0,1000,20)
+for(cpt in 1:1000){
+  Q0_partant_de_1[cpt,] = simul(20,Q(0.5),c(1,0,0,0))
+}
+par(mfrow=c(2,5))
+for(i in 2:20){
+  barplot(table(Q0_partant_de_1[,i])/1000,beside=TRUE,main = paste('Pour l iteration',i))
+}
+```
+
+Pour le cas où Ro=0.5 la convergence dépend de l'état initial donc pas de convergence en loi . Partant de 3 ou 4 nous serons toujours bloqués dans ces deux états, et de même partant de 1 ou 2.
+
+##Q7 Temps de retour à un état
+
+```{r}
+#Fonction renvoyant le temps necéssaire pour revenir à l'état s
+TempsRetour=function(s,Ro){
+n=1
+t=EtatSuiv(s,Q(Ro))
+while(t != s){
+t=EtatSuiv(t,Q(Ro))
+n=n+1
+}
+return(n)
+}
+```
+
+##Q8 
+```{r}
+#Fonction qui retourne l'espérence
+EstimerEsperence=function(s,Ro){
+  somme=0
+  for (i in 1:1000){
+    somme=somme+TempsRetour(s,Ro)
+  }
+  return(somme/1000)
+}
+```
+  
+```{r}
+print(EstimerEsperence(1,0))    #esperence pour q=0
+print(EstimerEsperence(1,0.25)) #esperence pour q=0.25
+print(EstimerEsperence(1,0.5))  #esperence pour q=0.5
+```
+
+```{r}
+#partieb
+Mu0=c(1/EstimerEsperence(1,0),1/EstimerEsperence(2,0),1/EstimerEsperence(3,0),1/EstimerEsperence(4,0))
+Mu025=c(1/EstimerEsperence(1,0.25),1/EstimerEsperence(2,0.25),1/EstimerEsperence(3,0.25),1/EstimerEsperence(4,0.25))
+Mu050=c(1/EstimerEsperence(1,0.5),1/EstimerEsperence(2,0.5),1/EstimerEsperence(3,0.5),1/EstimerEsperence(4,0.5))
+
+print(Mu0)
+print(Mu025)
+print(Mu050)
+```
+Nous remarquons  que pour les deux cas Ro=0 et 0.25 la formule est bien applicable et c'est bien égale à la loi stationnaire. 
+Tandis que pour Ro=0.5, 1/Espérence donne  0.6697924 0.3264773 0.6596306 0.3369272 et cela correspond à deux classes de récurrence différentes. En pratique cette réponse correspond à (0.66 0.32 0 0) et (0 0 0.66 0.33) . Et donc ca dépend de l'état avec le cas on commence, on tombe dans l'une des deux lois.  
+
+#Exercice2
+##Q1 Methode de Metropolis
+```{r}
+
+f=function(u,v){
+  return(exp(-10*(u*u-v)^2-(v-1/4)^4))
+}
+  
+
+MetropolisHastings=function(i,sigma,n){
+  X=matrix(NA,n,2)
+  X[1,1]=i[1]
+  X[1,2]=i[2]
+  for (j in 2:n){
+    eps=rnorm(2,0,sigma)
+    ksi=X[j-1]+eps
+
+   
+    r=f(ksi[1],ksi[2])/f(X[j-1,1],X[j-1,2])
+
+    u=runif(1,0,1)
+    if(u<=r){
+      X[j,1]=ksi[1]
+      X[j,2]=ksi[2]
+    }
+    else{
+      X[j,1]=X[j-1,1]
+      X[j,2]=X[j-1,2]
+    }
+  }
+  return(X)
+}
+```
+
+
+  
+#Q2 Methode de Metropolis
+
+
+```{r}
+#Algo Proposé
+u=seq(-2,2,0.1)
+v=seq(-2,2,0.1)
+z=outer(u,v,f)
+```
+
+
+```{r}
+n=10000
+
+P1=MetropolisHastings(c(1,0),0.1,n)
+image(u,v,z,main=paste(" i=(1,0) sigma=0.1"))
+points(P1)
+
+P2=MetropolisHastings(c(1,0),1,n)
+image(u,v,z,main=paste(" i=(1,0) sigma=1"))
+points(P2)
+
+P3=MetropolisHastings(c(1,0),1.9,n)
+image(u,v,z,main=paste(" i=(1,0) sigma=1.9"))
+points(P3)
+
+P4=MetropolisHastings(c(2,0),0.1,n)
+image(u,v,z,main=paste(" i=(2,0) sigma=0.1"))
+points(P4)
+
+P5=MetropolisHastings(c(2,0),1,n)
+image(u,v,z,main=paste(" i=(2,0) sigma=1"))
+points(P5)
+
+P6=MetropolisHastings(c(2,0),1.9,n)
+image(u,v,z,main=paste(" i=(2,0) sigma=1.9"))
+points(P6)
+
+```
+
+Conclusion : Plus on approche de sigma egale 1 plus la reponse converge et on prend plus des points
+Interpretation: Plus sigma augmente eps aura tendance à être plus grand donc ksi sera plus grand et donc le rapport f(ksi)/f(x) sera plus grand et donc lq possibilité de rester sur place augmente et donc on aura moin de points sur le graphe ce qui est bien montré par les graphes.
+
+```{r}
+#3
+x0=c(1,0)
+
+X0.1=MetropolisHastings(x0,0.1,1000)
+f0.1 = cumsum(X0.1[,1])/(1:1000)
+plot(1:1000,f0.1,type='l',col="black",ylim=c(-0.5,1))
+legend("topright", paste(c("sigma=0.1", "sigma=1","sigma=1.5","sigma=2")),
+       col=c("black","green","blue", "red"), lty=1, cex=0.8)
+
+X1=MetropolisHastings(x0,1,1000)
+f1 = cumsum(X1[,1])/(1:1000)
+lines(1:1000,f1,type='l',col="green")
+
+X1.5=MetropolisHastings(x0,1.5,1000)
+f1.5 = cumsum(X1.5[,1])/(1:1000)
+lines(1:1000,f1.5,type='l',col="blue")
+
+X2=MetropolisHastings(x0,2,1000)
+f2 = cumsum(X2[,1])/(1:1000)
+lines(1:1000,f2,type='l',col="red")
+```
+
